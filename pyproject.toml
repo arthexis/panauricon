@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "panauricon"
+version = "0.1.0"
+description = "Record everything."
+authors = ["Rafael Guillén <rafael.guillen@avattar.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.10"
+sounddevice = "^0.4.2"
+pip = "^21.2.4"
+scipy = "^1.7.1"
+numpy = "^1.21.2"
+click = "^8.0.1"
+toml = "^0.10.2"
+poetry-version = "^0.1.5"
+SoundFile = "^0.10.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
