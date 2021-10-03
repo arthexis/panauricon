@@ -9,42 +9,76 @@ import soundfile as sf
 from .settings import settings
 
 
-logging.basicConfig(
-    filename='recorder.log', 
-    level=logging.INFO,
-    encoding='utf-8',
-    format='%(asctime)s %(levelname)s: %(message)s'
-)
-logger  = logging.getLogger(__name__)
+logger  = logging.getLogger('panauricon.recorder')
 
 
-def get_recording_path(root, now):
-    path: Path = root / 'recordings'
-    if not path.exists():
-        path.mkdir()
-    path = path / now.strftime(r'%Y%d%m')
-    if not path.exists():
-        path.mkdir() 
-    return path / now.strftime(r'%H%M%S.wav')
-
-
-def record_loop():
-    opts = settings['recorder']
-    device = sd.query_devices(device=opts.get('device'), kind='input')
-    samplerate = float(device['default_samplerate'])
-    root = Path(settings.pop('path', '.'))
+def start_recording():
+    """
+    Begin recording audio using existing settings.
+    """
+    device = _get_recording_device()
+    soundfile_kwargs = _get_soundfile_kwargs(device)
     queue = Queue()
+    context = {'silence': 0}
 
     def callback(indata, frame_count, time_info, status):
         if status:
-            logger.info(f"{status}")
+            logger.info(f"Status in callback: {status}")
         queue.put(indata.copy())
 
-    with sd.InputStream(**opts, channels=1, callback=callback):
-        logger.info("Opening input stream.")
+    with sd.InputStream(**settings.recorder, channels=1, callback=callback):
         while True:
-            now = datetime.utcnow()
-            path = get_recording_path(root, now)
-            with sf.SoundFile(path, mode='w', channels=1, samplerate=int(samplerate)) as f:
-                while now.minute == datetime.utcnow().minute:
-                    f.write(queue.get())
+            path, filename = _get_recording_path()
+            logger.info(f"Open {path=} {filename=} for writting.")
+            try:
+                with sf.SoundFile(path / filename, mode='w', **soundfile_kwargs) as f:
+                    while data := _process_block(queue.get(), context):
+                        f.write(data)
+            finally:
+                logger.info(f"Closed {path=} {filename=}.")
+
+
+def _process_block(data, context):
+    """
+    Return the processed audio block or None.
+    A return of None implies recording should be restarted.
+    Context is used to hold state between blocks.
+    """
+    return data
+    
+
+def _get_recording_path():
+    """
+    Calculate the path and filename for the next sound file.
+    """
+    now = datetime.utcnow()
+    root = Path(settings.path or '.')
+    path = root / 'recordings'
+    if not path.exists():
+        path.mkdir()
+        logger.info("Recordings path missing, created.")
+    filename = now.strftime(r'%Y%m%d%H%M%S') + '.' + settings.format
+    return path, filename
+
+
+def _get_recording_device():
+    """
+    Determine which device to use for the recording.
+    """
+    _, portaudio_version = sd.get_portaudio_version()
+    logger.info(f"{portaudio_version}")
+    if not settings.recorder:
+        return None
+    device = sd.query_devices(device=settings.recorder.device, kind='input')
+    logger.info(f"Using {device['name']=} for recording.")
+    return device
+
+
+def _get_soundfile_kwargs(device):
+    """
+    Return the soundfile options required by device.
+    """
+    return {
+        'channels': 1, 
+        'samplerate': int(device['default_samplerate'])
+    }

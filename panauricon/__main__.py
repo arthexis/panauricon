@@ -1,43 +1,59 @@
-from pathlib import Path
-
 import click 
 import sounddevice as sd
 
-from .recorder import record_loop
+from .recorder import start_recording
 from .settings import settings
+    
 
-
-def pick_device():
-    """Interactively choose an element from a list."""
-    click.echo("Choose your recording device.")
-    click.echo(sd.query_devices())
-    choice = input("Enter the number for your choice: ")
-    return int(choice) if choice != "" else None
-
+# Click group settings
 
 @click.group()
-def cli():
-    pass
+def cli(): pass
 
+
+# Click individual commands
 
 @cli.command()
 def list():
-    """Display available recording devices."""
+    """
+    Display all available audio devices.
+    """
     click.echo(sd.query_devices())
 
 
 @cli.command()
 def config():
-    """"Configure the recorder."""
-    settings['recorder'] = {'device': pick_device()}
+    """
+    Configure the recording device and save the settings.
+    """
+    _set_recorder_settings()
     settings.store()
 
 
 @cli.command()
-def record():
-    """Start recording until interrupted."""
+def rec():
+    """
+    Start recording, indexing and uploading until interrupted.
+    """
+    if not settings.recorder:
+        _set_recorder_settings()
     click.echo("Recording started. Press Ctrl+C to stop.")
-    record_loop()
+    start_recording()
 
 
+# Helper functions
+
+def _set_recorder_settings():
+    """
+    Interactively choose an element from a list.
+    """
+    click.echo("Choose your recording device.")
+    click.echo(sd.query_devices())
+    device_id = input("Enter the number for your choice: ")
+    settings.recorder = {
+        'device': int(device_id) if device_id != "" else None
+    }
+
+
+# Start Click
 cli()

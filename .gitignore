@@ -1,0 +1,9 @@
+# Python files
+__pycache__
+*.pyc
+
+# Runtime debris
+*.log
+
+# Panauricon specific
+recordings/
