@@ -1,7 +1,9 @@
+import shutil
+from pathlib import Path
+
 import click 
 import sounddevice as sd
 
-from .recorder import start_recording
 from .settings import settings
     
 
@@ -14,11 +16,18 @@ def cli(): pass
 # Click individual commands
 
 @cli.command()
-def list():
+@click.option('--full', is_flag=True)
+def devices(full):
     """
     Display all available audio devices.
     """
-    click.echo(sd.query_devices())
+    devices = sd.query_devices()
+    if not full:
+        click.echo(devices)
+    else:
+        for i, d in enumerate(devices):
+            click.echo(f'Device #{i}')
+            click.echo(d)
 
 
 @cli.command()
@@ -35,14 +44,43 @@ def config(get):
 
 
 @cli.command()
-def rec():
+@click.option('-i', '--interactive', is_flag=True)
+def rec(interactive):
     """
     Start recording, indexing and uploading until interrupted.
     """
-    if not settings.recorder:
+    from .recorder import start_recording
+
+    if interactive and not settings.recorder:
         _set_recorder_settings()
     click.echo("Recording started. Press Ctrl+C to stop.")
     start_recording()
+
+
+@cli.command()
+@click.option('--start', default='1 min ago')
+def play(start):
+    """
+    Start playback from a specified time forwards.
+    By default plays back the last minute.
+    """
+    import moment
+    from .recorder import start_playback
+
+    start = moment.utc(start)
+    click.echo(f"Starting playback from {start}.")
+    start_playback(start)
+
+
+@cli.command()
+def clean():
+    """
+    Delete all local operational data.
+    """
+    from pathlib import Path
+    (settings.base_path / settings.database).unlink()
+    shutil.rmtree(settings.base_path / settings.soundfile.root)
+    click.echo("All local data removed.")
 
 
 # Helper functions
@@ -59,5 +97,7 @@ def _set_recorder_settings():
     }
 
 
-# Start Click
-cli()
+try:
+    cli()
+except SystemExit:
+    pass  # Not an error

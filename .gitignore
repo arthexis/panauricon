@@ -4,6 +4,7 @@ __pycache__/
 
 # Runtime debris
 *.log
+*.db
 
 # Panauricon specific
 recordings/
