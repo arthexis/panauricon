@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import toml
 import poetry_version
@@ -7,11 +8,11 @@ import poetry_version
 __version__ = str(poetry_version.extract(source_file=__file__))
 
 
-SETTINGS_FILE = "settings.toml"
+SETTINGS_FILE = Path("settings.toml")
 DEFAULT_SETTINGS = {
     'version': __version__,
-    'format': 'flac', 
-    'loglevel': 'INFO',
+    'soundfile': {'format': 'flac'}, 
+    'loglevel': logging.DEBUG,
     'recorder': {}
 }
 
@@ -22,11 +23,19 @@ class Settings(dict):
     You can use attribute access to access these settings.
     """
 
-    def store(self):
+    def load(self):
+        """
+        Load settings from the configuration file.
+        """
+        loaded = toml.load(SETTINGS_FILE)
+        for k, v in loaded.items():
+            self[k] = v
+
+    def dump(self, filename):
         """
         Update the configuration file with current values.
         """
-        with open(SETTINGS_FILE, "w") as f:
+        with open(filename, "w") as f:
             toml.dump( {**DEFAULT_SETTINGS, **self}, f)
 
     def __getattr__(self, name):
@@ -45,9 +54,14 @@ class Settings(dict):
 
 
 # Global variable with the current settings
-settings = Settings({**DEFAULT_SETTINGS, **toml.load(SETTINGS_FILE)})
+settings = Settings({**DEFAULT_SETTINGS})
+
+if SETTINGS_FILE.exists():
+    settings.load(SETTINGS_FILE)
+    
 
 # Setup logging from settings
+
 logging.basicConfig(
     filename='recorder.log', 
     level=settings.loglevel,
@@ -56,6 +70,5 @@ logging.basicConfig(
 )
 
 logger  = logging.getLogger('panauricon.settings')
-logger.info(f"Loaded settings file {SETTINGS_FILE}.")
-logger.debug(f'Settings: {settings}')
+logger.debug(f'Settings: {str(settings)}')
 

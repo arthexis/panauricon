@@ -57,7 +57,9 @@ def _get_recording_path():
     if not path.exists():
         path.mkdir()
         logger.info("Recordings path missing, created.")
-    filename = now.strftime(r'%Y%m%d%H%M%S') + '.' + settings.format
+    logger.info(f'Soundfile settings: {settings.soundfile}')
+    extension = '.' + settings.soundfile.format
+    filename = now.strftime(r'%Y%m%d%H%M%S') + extension
     return path, filename
 
 
@@ -80,5 +82,5 @@ def _get_soundfile_kwargs(device):
     """
     return {
         'channels': 1, 
-        'samplerate': int(device['default_samplerate'])
+        'samplerate': int(device['default_samplerate']) if device else None
     }

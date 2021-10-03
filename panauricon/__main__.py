@@ -22,12 +22,16 @@ def list():
 
 
 @cli.command()
-def config():
+@click.option('--get')
+def config(get):
     """
     Configure the recording device and save the settings.
     """
+    if get:
+        click.echo(getattr(settings, get))
+        return
     _set_recorder_settings()
-    settings.store()
+    settings.dump()
 
 
 @cli.command()
