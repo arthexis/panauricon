@@ -7,3 +7,4 @@ __pycache__
 
 # Panauricon specific
 recordings/
+settings.toml
